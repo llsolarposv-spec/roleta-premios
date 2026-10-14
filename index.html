@@ -406,6 +406,8 @@ botao.addEventListener("click", () => {
   if (girando || jaGirou) return;
 
   girando = true;
+  startRouletteSound();
+  
   botao.disabled = true;
   botao.innerHTML = "<span>↻</span> BOA SORTE!";
   resultado.style.display = "none";
@@ -449,7 +451,10 @@ if (indice === -1) {
     } else {
       rotacao = destino % (2 * Math.PI);
       desenhar();
-
+      
+stopRouletteSound();
+playCoinsSound();
+      
       premioAtual = premios[indice];
       nomePremio.textContent = premioAtual;
 
@@ -481,6 +486,89 @@ botaoWhats.addEventListener("click", () => {
 
   window.open(link, "_blank", "noopener,noreferrer");
 });
+</script>
+<script>
+let audioContext;
+let rouletteSoundTimer = null;
+
+function getAudioContext() {
+  if (!audioContext) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) audioContext = new AudioCtx();
+  }
+
+  if (audioContext?.state === "suspended") {
+    audioContext.resume();
+  }
+
+  return audioContext;
+}
+
+function playRouletteClick() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = "square";
+  osc.frequency.setValueAtTime(1200 + Math.random() * 500, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.07, now + 0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.03);
+}
+
+function startRouletteSound() {
+  getAudioContext();
+  stopRouletteSound();
+
+  let interval = 45;
+
+  function tick() {
+    playRouletteClick();
+    interval = Math.min(interval + 8, 180);
+    rouletteSoundTimer = setTimeout(tick, interval);
+  }
+
+  tick();
+}
+
+function stopRouletteSound() {
+  if (rouletteSoundTimer !== null) {
+    clearTimeout(rouletteSoundTimer);
+    rouletteSoundTimer = null;
+  }
+}
+
+function playCoinsSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const notes = [987.77, 1318.51, 1567.98, 1975.53, 1567.98, 1318.51];
+
+  notes.forEach((freq, i) => {
+    const now = ctx.currentTime + i * 0.11;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.32);
+  });
+}
 </script>
 </body>
 </html>
